@@ -31,6 +31,7 @@ import static org.lwjgl.opengl.GL11.GL_NORMAL_ARRAY;
 import static org.lwjgl.opengl.GL11.GL_POSITION;
 import static org.lwjgl.opengl.GL11.GL_PROJECTION;
 import static org.lwjgl.opengl.GL11.GL_QUADS;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
 import static org.lwjgl.opengl.GL11.GL_SPECULAR;
 import static org.lwjgl.opengl.GL11.GL_SPOT_CUTOFF;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
@@ -65,6 +66,8 @@ import static org.lwjgl.ovr.OVR.ovrHmd_ConfigureTracking;
 import static org.lwjgl.ovr.OVR.ovrHmd_Create;
 import static org.lwjgl.ovr.OVR.ovrHmd_CreateDebug;
 import static org.lwjgl.ovr.OVR.ovrHmd_DK2;
+import static org.lwjgl.ovr.OVR.ovrHmd_Destroy;
+import static org.lwjgl.ovr.OVR.ovrHmd_DestroySwapTextureSet;
 import static org.lwjgl.ovr.OVR.ovrHmd_Detect;
 import static org.lwjgl.ovr.OVR.ovrHmd_GetFovTextureSize;
 import static org.lwjgl.ovr.OVR.ovrHmd_GetFrameTiming;
@@ -89,6 +92,7 @@ import static org.lwjgl.system.MemoryUtil.memDecodeASCII;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.LongBuffer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -104,6 +108,7 @@ import org.lwjgl.opengl.GLContext;
 import org.lwjgl.ovr.OVREyeRenderDesc;
 import org.lwjgl.ovr.OVRFovPort;
 import org.lwjgl.ovr.OVRFrameTiming;
+import org.lwjgl.ovr.OVRGL;
 import org.lwjgl.ovr.OVRHmdDesc;
 import org.lwjgl.ovr.OVRInitParams;
 import org.lwjgl.ovr.OVRLayerEyeFov;
@@ -111,6 +116,7 @@ import org.lwjgl.ovr.OVRLogCallback;
 import org.lwjgl.ovr.OVRMatrix4f;
 import org.lwjgl.ovr.OVRPosef;
 import org.lwjgl.ovr.OVRSizei;
+import org.lwjgl.ovr.OVRSwapTextureSet;
 import org.lwjgl.ovr.OVRTexture;
 import org.lwjgl.ovr.OVRTextureHeader;
 import org.lwjgl.ovr.OVRTrackingState;
@@ -143,8 +149,10 @@ public final class RiftClient0600 {
     private final OVRMatrix4f[] projections = new OVRMatrix4f[2];
     private final OVRFovPort fovPorts[] = new OVRFovPort[2];
     private final OVRPosef eyePoses[] = new OVRPosef[2];
-    private OVREyeRenderDesc eyeRenderDesc[] = new OVREyeRenderDesc[2];
+    private final OVRSwapTextureSet textureSet[] = new OVRSwapTextureSet[2];
+    private final OVREyeRenderDesc eyeRenderDesc[] = new OVREyeRenderDesc[2];
     private OVRSizei textureSize;
+    private ByteBuffer layers;
     private OVRLayerEyeFov layer0;
    
     //OpenGL
@@ -154,7 +162,7 @@ public final class RiftClient0600 {
     private FixedTexture cheq;
     
     //GLFW
-    private static long window;
+    private long window;
     private GLFWErrorCallback errorfun;
     private GLFWKeyCallback keyfun;  
     
@@ -166,7 +174,7 @@ public final class RiftClient0600 {
     private final ScheduledExecutorService fpsCounter = Executors.newSingleThreadScheduledExecutor();
     private final AtomicInteger frames = new AtomicInteger(0);
     private final AtomicInteger fps = new AtomicInteger(0);
-    Runnable fpsJob = new Runnable() {
+    private Runnable fpsJob = new Runnable() {
         public void run() {
             int frameCount = frames.getAndSet(0);
             fps.set(frameCount/fpsReportingPeriodSeconds);
@@ -177,10 +185,10 @@ public final class RiftClient0600 {
     
     public RiftClient0600() {
         System.out.println("RiftClient0600()");
-        modelviewDFB =  ByteBuffer.allocateDirect(4*4*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        modelviewDFB = BufferUtils.createFloatBuffer(4*4);
         projectionDFB = new FloatBuffer[2];
         for (int eye = 0; eye < 2; ++eye) {
-            projectionDFB[eye] = ByteBuffer.allocateDirect(4*4*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+            projectionDFB[eye] = BufferUtils.createFloatBuffer(4*4);
         }
     }
     
@@ -212,7 +220,7 @@ public final class RiftClient0600 {
     }
 
     private void run() {
-        System.out.println(""+System.getProperty("java.version"));
+        System.out.println("Java "+System.getProperty("java.version"));
         
         // step 1 - hmd init
         System.out.println("step 1 - hmd init");
@@ -245,21 +253,22 @@ public final class RiftClient0600 {
                 return;
             }
         }
-        hmd = pHmd.get(0);
 
         // step 3 - hmd size queries
-        hmdDesc = new OVRHmdDesc(MemoryUtil.memByteBuffer(hmd, OVRHmdDesc.SIZEOF));
         System.out.println("step 3 - hmd sizes");
-//        System.out.println("Serial Number: "+hmdDesc.getSerialNumberString());
+        hmd = pHmd.get(0);
+        hmdDesc = new OVRHmdDesc(MemoryUtil.memByteBuffer(hmd, OVRHmdDesc.SIZEOF));
         resolutionW = hmdDesc.getResolutionW();
         resolutionH = hmdDesc.getResolutionH();
         System.out.println("resolution W=" + resolutionW + ", H=" + resolutionH);
         
+        //eye order
         OVRSizei pairInts = new OVRSizei();             //bit naughty using this in case or of w and h changes
         hmdDesc.getEyeRenderOrder(pairInts.buffer());
         eyeRenderOrder[0] = pairInts.getW();
         eyeRenderOrder[1] = pairInts.getH();
         
+        //FOV
         for (int eye = 0; eye < 2; eye++) {
             fovPorts[eye] = new OVRFovPort();
             hmdDesc.getDefaultEyeFov(fovPorts[eye].buffer(), eye);
@@ -275,26 +284,17 @@ public final class RiftClient0600 {
         ovrHmd_GetFovTextureSize(hmd, ovrEye_Right, fovPorts[ovrEye_Right].buffer(), pixelsPerDisplayPixel, rightTextureSize.buffer());
         System.out.println("rightTextureSize W="+rightTextureSize.getW() +", H="+ rightTextureSize.getH());
         
-        
         int displayW = leftTextureSize.getW() + rightTextureSize.getW();
         int displayH = Math.max(leftTextureSize.getH(), rightTextureSize.getH());
         textureSize = new OVRSizei(OVRSizei.malloc(displayW / 2, displayH));    //single eye
         System.out.println("renderTargetEyeSize W=" + textureSize.getW() + ", H=" + textureSize.getH());
 
-//        eyeRenderViewport[ovrEye_Left].Pos = new OvrVector2i(0, 0);
-//        eyeRenderViewport[ovrEye_Left].Size = renderTargetEyeSize;
-//        eyeRenderViewport[ovrEye_Right].Pos = eyeRenderViewport[ovrEye_Left].Pos;
-//        eyeRenderViewport[ovrEye_Right].Size = renderTargetEyeSize;
-
-        
+        //Textures
         OVRTextureHeader leftHeader = new OVRTextureHeader();
         leftHeader.setAPI(ovrRenderAPI_OpenGL);
         leftHeader.setTextureSize(textureSize.buffer());
-        //leftHeader.setTextureSizeW(renderTargetEyeSize.getW());
-        //leftHeader.setTextureSizeH(renderTargetEyeSize.getH());
         textures[ovrEye_Left] = new OVRTexture();
         textures[ovrEye_Left].setHeader(leftHeader.buffer());
-        //leftTexture.setPlatformData(PlatformData);
         
         OVRTextureHeader rightHeader = new OVRTextureHeader();
         rightHeader.setAPI(ovrRenderAPI_OpenGL);
@@ -302,51 +302,56 @@ public final class RiftClient0600 {
         textures[ovrEye_Right] = new OVRTexture();
         textures[ovrEye_Right].setHeader(rightHeader.buffer()); 
         
-//from snippet        ovrHmd_SetEnabledCaps(hmd, ovrHmdCap_LowPersistence|ovrHmdCap_DynamicPrediction);
-        
         // step 4 - tracking
         System.out.println("step 4 - tracking");
         if (ovrHmd_ConfigureTracking(hmd, ovrTrackingCap_Orientation|ovrTrackingCap_MagYawCorrection|ovrTrackingCap_Position, 0) != ovrSuccess) {
             throw new IllegalStateException("Unable to start the sensor");
         }
         
-        // step 5 - Projections
-        System.out.println("step 5 - Projections");
+        // step 5 - projections
+        System.out.println("step 5 - projections");
         for (int eye = 0; eye < 2; eye++) {
             projections[eye] = new OVRMatrix4f();
             OVRUtil.ovrMatrix4f_Projection(fovPorts[eye].buffer(), 0.1f, 1000000f, OVRUtil.ovrProjection_RightHanded, projections[eye].buffer());
         }
         
-        // step 6 - player params
-        System.out.println("step 6 - player params");
+        // step 6 - render desc
+        System.out.println("step 6 - render desc");
         for (int eye = 0; eye < 2; eye++) {
             eyeRenderDesc[eye] = new OVREyeRenderDesc();
             ovrHmd_GetRenderDesc(hmd, ovrEye_Left,  fovPorts[eye].buffer(), eyeRenderDesc[eye].buffer());
         }
         
-        
+        // step 7 - reset player
 //        ipd = hmd.getFloat(OvrLibrary.OVR_KEY_IPD, ipd);
 //        eyeHeight = hmd.getFloat(OvrLibrary.OVR_KEY_EYE_HEIGHT, eyeHeight);
-        recenterView();
+        recenterView(); //TODO need this? populate player
 //        System.out.println("eyeheight=" + eyeHeight + " ipd=" + ipd);
 
-        System.out.println("Hello LWJGL " + Sys.getVersion() + "!");
         try {
+            createWindow();
             init();
             loop();
             glfwDestroyWindow(window);
         } finally {
             glfwTerminate();
             fpsCounter.shutdown();
+            keyfun.release();
+            errorfun.release();
         } 
-  //       ovrHmd_Destroy(hmd.getPointer());
-         ovr_Shutdown();
+        if (textureSet[0] != null) {
+            ovrHmd_DestroySwapTextureSet(hmd, textureSet[0].buffer());
+        }
+        if (textureSet[1] != null) {
+            ovrHmd_DestroySwapTextureSet(hmd, textureSet[1].buffer());
+        }
+        ovrHmd_Destroy(hmd);
+        ovr_Shutdown();
     }
     
-    
-    private void init() {
-        // step 7 - opengl window
-        System.out.println("step 7 - window");
+    private void createWindow() {
+        // step 8 - opengl createWindow
+        System.out.println("step 8 - createWindow - " +Sys.JNI_LIBRARY_NAME+"-"+Sys.getVersion());
         
         errorfun = errorCallbackPrint(System.err);
         glfwSetErrorCallback(errorfun);
@@ -377,16 +382,18 @@ public final class RiftClient0600 {
             }
         };
         glfwSetKeyCallback(window, keyfun);
-        
-
         glfwMakeContextCurrent(window);
      //   glfwSwapInterval(0);              //not needed?
         glfwShowWindow(window);
-        
 //        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);        //only after display create?
 //        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);        //only after display create?`
         //glfwSetInputMode(id, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);        //hide mouse
-        
+    }
+    
+    private void init() {
+        // step 9 - init
+        System.out.println("step 9 - init");
+
         GLContext.createFromCurrent();
         glClearColor(.42f, .67f, .87f, 1f);
         
@@ -458,26 +465,45 @@ public final class RiftClient0600 {
         modelviewDFB.rewind();
         glLoadMatrixf(modelviewDFB);
         
+
+        //Texture Set
+        for (int eye = 0; eye < 2; eye++) {
+            PointerBuffer textureSetPB = BufferUtils.createPointerBuffer(1);
+            int result = OVRGL.ovrHmd_CreateSwapTextureSetGL(hmd, GL_RGBA, textureSize.getW(), textureSize.getH(), textureSetPB);
+            if (result != ovrSuccess) {
+                throw new IllegalStateException("Failed to create Swap Texture Set for eye "+eye);
+            }
+            long hts = textureSetPB.get(0);
+            textureSet[eye] = new OVRSwapTextureSet(MemoryUtil.memByteBuffer(hts, OVRSwapTextureSet.SIZEOF));
+            textureSet[eye].setCurrentIndex(0);
+            textureSet[eye].setTextureCount(1);
+            textureSet[eye].setTextures(textures[eye].getPointer());
+        }
+        
         //Layers
         layer0 = new OVRLayerEyeFov();
         layer0.setHeaderType(ovrLayerType_EyeFov);
         layer0.setHeaderFlags(ovrLayerFlag_TextureOriginAtBottomLeft);
         for (int eye = 0; eye < 2; eye++) {
-            layer0.setColorTexture(textures[eye].buffer(), eye);
+            layer0.setColorTexture(textureSet[eye].buffer(), eye);
             layer0.setViewport(textureSize.buffer(), eye);
             layer0.setFov(fovPorts[eye].buffer(), eye);
-            //not we update pose only when we have it in the render loop
+            // we update pose only when we have it in the render loop
         }
+        
+        layers = BufferUtils.createByteBuffer(Long.BYTES);
+        layers.putLong(layer0.getPointer());
+        layers.position(0);
 
         //fps
         fpsCounter.scheduleAtFixedRate(fpsJob, 0, fpsReportingPeriodSeconds, TimeUnit.SECONDS); 
     }
     
     private void loop() {
-        // step 8 - animator loop
-        System.out.println("step 8 - animator loop");
+        // step 10 - animator loop
+        System.out.println("step 10 - animator loop");
         while (glfwWindowShouldClose(window) == GL_FALSE) {
-            
+            //TODO move object creation out of loop!
             OVRFrameTiming ftiming = new OVRFrameTiming(); 
             ovrHmd_GetFrameTiming(hmd, 0, ftiming.buffer());
             OVRTrackingState hmdState = new OVRTrackingState();
@@ -504,12 +530,7 @@ public final class RiftClient0600 {
             outEyePoses.position(OVRPosef.SIZEOF);
             outEyePoses.limit(2 * OVRPosef.SIZEOF);
             eyePoses[ovrEye_Right] = new OVRPosef(outEyePoses.slice().order(outEyePoses.order()));
-            
-
-            
-            
-            
-            
+ 
             //dont need this yet! unless using      ovrLayerType_QuadInWorld or ovrLayerType_QuadHeadLocked
 //          OVRViewScaleDesc viewScaleDesc = new OVRViewScaleDesc();
 //          viewScaleDesc.setHmdSpaceToWorldScaleInMeters(1.0f);
@@ -518,10 +539,6 @@ public final class RiftClient0600 {
 //          int result = ovrHmd_SubmitFrame(hmd, 0, viewScaleDesc.buffer(), layers.buffer(), 1);
 
 
-
-            
-            
-          //  Posef eyePoses[] = hmd.getEyePoses(frameCount, eyeOffsets);
             for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
                 int eye = eyeRenderOrder[eyeIndex];
                 OVRPosef eyePose = eyePoses[eye];
@@ -538,6 +555,7 @@ public final class RiftClient0600 {
                 MatrixStack mv = MatrixStack.MODELVIEW;
                 mv.push();
                 {
+       //TODO switch to JOML for all this?
        //             mv.preTranslate(RiftUtils.toVector3f(eyePoses[eye].Position).mult(-1));
        //             mv.preRotate(RiftUtils.toQuaternion(eyePoses[eye].Orientation).inverse());
                     mv.translate(new Vector3f(0, eyeHeight, 0));
@@ -563,8 +581,11 @@ public final class RiftClient0600 {
 
             frames.incrementAndGet();
             
+            System.out.println("pre crash");
+            int result = ovrHmd_SubmitFrame(hmd, 0, null, layers, 1);
+            System.out.println("post crash");
             
-            int result = ovrHmd_SubmitFrame(hmd, 0, null, layer0.buffer(), 1);
+            
             if (result == ovrSuccess_NotVisible) {
                 System.out.println("TODO not vis!!");
             } else if (result != ovrSuccess) {
