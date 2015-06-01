@@ -92,7 +92,6 @@ import static org.lwjgl.system.MemoryUtil.memDecodeASCII;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-import java.nio.LongBuffer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -112,6 +111,7 @@ import org.lwjgl.ovr.OVRGL;
 import org.lwjgl.ovr.OVRHmdDesc;
 import org.lwjgl.ovr.OVRInitParams;
 import org.lwjgl.ovr.OVRLayerEyeFov;
+import org.lwjgl.ovr.OVRLayerHeader;
 import org.lwjgl.ovr.OVRLogCallback;
 import org.lwjgl.ovr.OVRMatrix4f;
 import org.lwjgl.ovr.OVRPosef;
@@ -122,6 +122,7 @@ import org.lwjgl.ovr.OVRTextureHeader;
 import org.lwjgl.ovr.OVRTrackingState;
 import org.lwjgl.ovr.OVRUtil;
 import org.lwjgl.ovr.OVRVector3f;
+import org.lwjgl.ovr.OVRViewScaleDesc;
 import org.lwjgl.system.MemoryUtil;
 import org.saintandreas.math.Matrix4f;
 import org.saintandreas.math.Vector3f;
@@ -152,7 +153,7 @@ public final class RiftClient0600 {
     private final OVRSwapTextureSet textureSet[] = new OVRSwapTextureSet[2];
     private final OVREyeRenderDesc eyeRenderDesc[] = new OVREyeRenderDesc[2];
     private OVRSizei textureSize;
-    private ByteBuffer layers;
+    private PointerBuffer layers;
     private OVRLayerEyeFov layer0;
    
     //OpenGL
@@ -465,7 +466,6 @@ public final class RiftClient0600 {
         modelviewDFB.rewind();
         glLoadMatrixf(modelviewDFB);
         
-
         //Texture Set
         for (int eye = 0; eye < 2; eye++) {
             PointerBuffer textureSetPB = BufferUtils.createPointerBuffer(1);
@@ -481,9 +481,12 @@ public final class RiftClient0600 {
         }
         
         //Layers
+        OVRLayerHeader header = new OVRLayerHeader();
+        header.setType(ovrLayerType_EyeFov);
+        header.setFlags(ovrLayerFlag_TextureOriginAtBottomLeft);
+        
         layer0 = new OVRLayerEyeFov();
-        layer0.setHeaderType(ovrLayerType_EyeFov);
-        layer0.setHeaderFlags(ovrLayerFlag_TextureOriginAtBottomLeft);
+        layer0.setHeader(header.buffer());
         for (int eye = 0; eye < 2; eye++) {
             layer0.setColorTexture(textureSet[eye].buffer(), eye);
             layer0.setViewport(textureSize.buffer(), eye);
@@ -491,9 +494,9 @@ public final class RiftClient0600 {
             // we update pose only when we have it in the render loop
         }
         
-        layers = BufferUtils.createByteBuffer(Long.BYTES);
-        layers.putLong(layer0.getPointer());
-        layers.position(0);
+        layers = BufferUtils.createPointerBuffer(1);
+        layers.put(0, header.getPointer());
+        //layers.put(0, layer0.getPointer());
 
         //fps
         fpsCounter.scheduleAtFixedRate(fpsJob, 0, fpsReportingPeriodSeconds, TimeUnit.SECONDS); 
@@ -532,8 +535,8 @@ public final class RiftClient0600 {
             eyePoses[ovrEye_Right] = new OVRPosef(outEyePoses.slice().order(outEyePoses.order()));
  
             //dont need this yet! unless using      ovrLayerType_QuadInWorld or ovrLayerType_QuadHeadLocked
-//          OVRViewScaleDesc viewScaleDesc = new OVRViewScaleDesc();
-//          viewScaleDesc.setHmdSpaceToWorldScaleInMeters(1.0f);
+          OVRViewScaleDesc viewScaleDesc = new OVRViewScaleDesc();
+          viewScaleDesc.setHmdSpaceToWorldScaleInMeters(1.0f);
 //          viewScaleDesc.HmdToEyeViewOffset[0] = ViewOffset[0];
 //          viewScaleDesc.HmdToEyeViewOffset[1] = ViewOffset[1];
 //          int result = ovrHmd_SubmitFrame(hmd, 0, viewScaleDesc.buffer(), layers.buffer(), 1);
@@ -581,9 +584,7 @@ public final class RiftClient0600 {
 
             frames.incrementAndGet();
             
-            System.out.println("pre crash");
-            int result = ovrHmd_SubmitFrame(hmd, 0, null, layers, 1);
-            System.out.println("post crash");
+            int result = ovrHmd_SubmitFrame(hmd, 0, viewScaleDesc.buffer(), layers);
             
             
             if (result == ovrSuccess_NotVisible) {
