@@ -23,6 +23,9 @@ public class FrameBuffer {
     Texture texture;
     int depthBuffer;
     int width, height;
+    
+    
+    int textureId;
 
     public FrameBuffer(int width, int height) {
         this.width = width;
@@ -48,6 +51,7 @@ public class FrameBuffer {
     public FrameBuffer(int width, int height, int textureId) {
         this.width = width;
         this.height = height;
+        this.textureId = textureId;
         frameBuffer = ARBFramebufferObject.glGenFramebuffers();
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, frameBuffer);
         glBindTexture(GL_TEXTURE_2D, textureId);
@@ -56,18 +60,19 @@ public class FrameBuffer {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_FRAMEBUFFER, ARBFramebufferObject.GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
-        //TODO depth required?
+
         depthBuffer = ARBFramebufferObject.glGenRenderbuffers();
         ARBFramebufferObject.glBindRenderbuffer(ARBFramebufferObject.GL_RENDERBUFFER, depthBuffer);
         ARBFramebufferObject.glRenderbufferStorage(ARBFramebufferObject.GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
         ARBFramebufferObject.glFramebufferRenderbuffer(ARBFramebufferObject.GL_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_ATTACHMENT, ARBFramebufferObject.GL_RENDERBUFFER, depthBuffer);
+        //TODO should the above be this? ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
         
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, 0);
     }
 
     public void activate() {
         glViewport(0, 0, width, height);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);            //TODO the textureId was 0...
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, frameBuffer);
     }
 
