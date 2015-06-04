@@ -62,6 +62,7 @@ import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL11.glEnableClientState;
 import static org.lwjgl.opengl.GL11.glEnd;
 import static org.lwjgl.opengl.GL11.glFrontFace;
+import static org.lwjgl.opengl.GL11.glFrustum;
 import static org.lwjgl.opengl.GL11.glGetError;
 import static org.lwjgl.opengl.GL11.glLightf;
 import static org.lwjgl.opengl.GL11.glLightfv;
@@ -161,6 +162,7 @@ public final class RiftClient0600 {
     private OVRHmdDesc hmdDesc;
     private int resolutionW;        //pixels rift
     private int resolutionH;
+    private float screenRatio;
     private final int[] eyeRenderOrder = new int[2];   //performance tip from developer guide for screens like DK2
     private final OVRMatrix4f[] projections = new OVRMatrix4f[2];
     private final OVRFovPort fovPorts[] = new OVRFovPort[2];
@@ -173,6 +175,7 @@ public final class RiftClient0600 {
     private OVRGLTexture textures[][];        //[eye][texturesPerEye]
     private PointerBuffer layers;
     private OVRLayerEyeFov layer0;
+    boolean usingDebug;
    
     //OpenGL
     private final FloatBuffer projectionDFB[] = new FloatBuffer[2];
@@ -384,7 +387,7 @@ public final class RiftClient0600 {
         // step 2 - hmd create
         System.out.println("step 2 - hmd create");
         PointerBuffer pHmd = BufferUtils.createPointerBuffer(1);
-        boolean usingDebug = false;
+        usingDebug = false;
         if (ovrHmd_Create(0, pHmd) != ovrSuccess) {
             System.out.println("create failed, try debug");
             if (ovrHmd_CreateDebug(ovrHmd_DK2, pHmd) != ovrSuccess) {
@@ -400,6 +403,7 @@ public final class RiftClient0600 {
         hmdDesc = new OVRHmdDesc(MemoryUtil.memByteBuffer(hmd, OVRHmdDesc.SIZEOF));
         resolutionW = hmdDesc.getResolutionW();
         resolutionH = hmdDesc.getResolutionH();
+        screenRatio = (float)resolutionW/resolutionH;
         System.out.println("resolution W=" + resolutionW + ", H=" + resolutionH);
         
         // eye order
@@ -591,8 +595,7 @@ public final class RiftClient0600 {
         OVRRecti viewport[] = new OVRRecti[2]; //should not matter which texture we measure, but they might be different to what was requested.
         for (int eye = 0; eye < 2; eye++) {
             viewport[eye] = new OVRRecti();
-            // viewport[eye].setPosX(0);
-            viewport[eye].setPosX(eye * textures[eye][0].getOGLHeaderTextureSizeW());
+            viewport[eye].setPosX(0);           //TODO for single texture usage I expected this to be textureWidth/2
             viewport[eye].setPosY(0);
             viewport[eye].setSizeW(textures[eye][0].getOGLHeaderTextureSizeW());
             viewport[eye].setSizeH(textures[eye][0].getOGLHeaderTextureSizeH());
@@ -695,8 +698,12 @@ public final class RiftClient0600 {
 
                 glMatrixMode(GL_PROJECTION);
                 glLoadIdentity();
-                glLoadMatrixf(projections[eye].buffer());
+                
+                //TODO
+                //glLoadMatrixf(projections[eye].buffer());                         //DOES NOT WORK      
+                glFrustum(-screenRatio, screenRatio, -1.0f, 1.0f, .5f, 500.0f);     //kind of works
 
+                
                 glMatrixMode(GL_MODELVIEW);
                 glLoadIdentity();
                 Vector3f center = Vector3f.UNIT_Y.mult(eyeHeight);
@@ -706,13 +713,19 @@ public final class RiftClient0600 {
                 MatrixStack mv = MatrixStack.MODELVIEW;
                 mv.push();
                 {
-                    mv.preTranslate(new Vector3f(eyePose.getPositionX(), eyePose.getPositionY(), eyePose.getPositionZ()).mult(-1));
-                    mv.preRotate(new Quaternion(eyePose.getOrientationX(), eyePose.getOrientationY(), eyePose.getOrientationZ(), eyePose.getOrientationW()).inverse());
-                    mv.translate(new Vector3f(0, eyeHeight, 0));
-                    modelviewDFB.clear();
-                    MatrixStack.MODELVIEW.top().fillFloatBuffer(modelviewDFB, true);
-                    modelviewDFB.rewind();
-                    glLoadMatrixf(modelviewDFB);
+                    if (usingDebug) {
+                        rotate += 0.05f;
+                        rotate %= 360.0f;
+                        glRotatef(rotate, 0.0f, 1.0f, 0.0f);
+                    } else {
+                        mv.preTranslate(new Vector3f(eyePose.getPositionX(), eyePose.getPositionY(), eyePose.getPositionZ()).mult(-1));
+                        mv.preRotate(new Quaternion(eyePose.getOrientationX(), eyePose.getOrientationY(), eyePose.getOrientationZ(), eyePose.getOrientationW()).inverse());
+                        mv.translate(new Vector3f(0, eyeHeight, 0));
+                        modelviewDFB.clear();
+                        MatrixStack.MODELVIEW.top().fillFloatBuffer(modelviewDFB, true);
+                        modelviewDFB.rewind();
+                        glLoadMatrixf(modelviewDFB);
+                    }
                 
                     // tiles on floor
                     glEnable(GL_TEXTURE_2D);
