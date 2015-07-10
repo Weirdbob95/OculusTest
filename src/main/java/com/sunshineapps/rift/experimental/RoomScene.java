@@ -28,11 +28,7 @@ public final class RoomScene implements Scene {
     private float roomSize = 6.0f;
     private float roomHeight = 2.6f*2;
     
-    float eyeHeight;    //actually we should render from y=0 and assume eyeheight is correct.
-    
-    public final void init(final float eyeHeight) {
-        this.eyeHeight = eyeHeight;
-        
+    public final void init() {
         TextureLoader loader = new TextureLoader();
         try {
             floorTexture = loader.getTexture("floor512512.png");
@@ -45,11 +41,9 @@ public final class RoomScene implements Scene {
     }
     
     public final void render() {
-        // tiles on floor
         glEnable(GL_TEXTURE_2D);
 
         floorTexture.bind();
-        glTranslatef(0.0f, -eyeHeight, 0.0f);       //TODO eyeheight must be determinable from somewhere
         drawPlaneFloor();
         floorTexture.unbind();
         
@@ -66,7 +60,6 @@ public final class RoomScene implements Scene {
         glTranslatef(0.0f, -roomHeight, 0.0f);
         ceilingTexture.unbind();
 
-        glTranslatef(0.0f, eyeHeight, 0.0f);
         glDisable(GL_TEXTURE_2D);
     }
     
