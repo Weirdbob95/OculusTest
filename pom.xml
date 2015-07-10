@@ -7,12 +7,12 @@
 
 
 	<dependencies>
-		<dependency>
+<!--		<dependency>
 			<groupId>org.saintandreas</groupId>
 			<artifactId>math</artifactId>
 			<version>1.0.4</version>
 		</dependency>
-        
+      -->    
 <!-- 		<dependency>
 			<groupId>org.saintandreas</groupId>
 			<artifactId>jovr</artifactId>
