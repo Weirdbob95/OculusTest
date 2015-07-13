@@ -19,6 +19,7 @@ import static org.lwjgl.glfw.GLFW.glfwSwapBuffers;
 import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
 import static org.lwjgl.glfw.GLFW.glfwTerminate;
 import static org.lwjgl.glfw.GLFW.glfwWindowHint;
+import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL11.GL_NEAREST;
@@ -29,7 +30,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.SwingUtilities;
 
@@ -38,36 +38,31 @@ import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.opengl.ARBFramebufferObject;
 
 public final class MirrorWindow {
+    private final ClientCallback callback;
     private final long window;
     private final int windowW;
     private final int windowH;
     private final GLFWErrorCallback errorfun;
     private final GLFWKeyCallback keyfun;
-    private final AtomicBoolean updateWindow = new AtomicBoolean(false);
+    private final AtomicBoolean updateingWindow = new AtomicBoolean(false);
     
     private int mirrorFBId;
     private int blitWidth;
     
     //FPS
-    private final int fpsReportingPeriodSeconds = 5;
+    private final FPSCounter fpsCounter = new FPSCounter();
+    
     private final ScheduledExecutorService executorST = Executors.newSingleThreadScheduledExecutor();
-    private final AtomicInteger frames = new AtomicInteger(0);
-    private final AtomicInteger fps = new AtomicInteger(0);
-    private Runnable fpsJob = new Runnable() {
-        public void run() {
-            int frameCount = frames.getAndSet(0);
-            fps.set(frameCount/fpsReportingPeriodSeconds);
-            frames.addAndGet(frameCount-(fps.get()*fpsReportingPeriodSeconds));
-            System.out.println(frameCount+" frames in "+fpsReportingPeriodSeconds+"s. "+fps.get()+"fps");
-        }
-    };
+    
     private Runnable displayJob = new Runnable() {
         public void run() {
-            updateWindow.compareAndSet(false, true);    //only if not already update pending!
+            updateingWindow.compareAndSet(false, true);    //only if not already update pending!
         }
     };
     
-    public MirrorWindow(final int fps, final int width, final float asspectRatio) {
+    public MirrorWindow(final ClientCallback client, final int fps, final int width, final float asspectRatio) {
+        callback = client;
+        
         errorfun = errorCallbackPrint(System.err);
         glfwSetErrorCallback(errorfun);
         
@@ -92,14 +87,18 @@ public final class MirrorWindow {
                 if ( action != GLFW_RELEASE) {
                     return;
                 }
-                //TODO a callback??
+                System.out.println("key="+key);
                 switch (key) {
                     case GLFW_KEY_ESCAPE:
                         glfwSetWindowShouldClose(window, GL_TRUE);
                         break;
-                    case GLFW_KEY_R:
+//                    case GLFW_KEY_R:
       //                  ovrHmd_RecenterPose(hmd);
+  //                      break;
+                    default:
+                        callback.keyPressed(key);
                         break;
+                            
                 }
             }
         };
@@ -108,7 +107,7 @@ public final class MirrorWindow {
         glfwSwapInterval(0);              //TODO swap is handled on rift, so this is just our mirror window now, actually it does affect FPS when on rift
         glfwShowWindow(window);
         
-        executorST.scheduleAtFixedRate(fpsJob, 0, fpsReportingPeriodSeconds, TimeUnit.SECONDS);
+        fpsCounter.init();
         executorST.scheduleAtFixedRate(displayJob, 0, (long)(((float)1 / fps) * 1000), TimeUnit.MILLISECONDS);
     }
 
@@ -127,16 +126,21 @@ public final class MirrorWindow {
     }
     
     //NOTE THREADING!
-    public void display() {
-        if (updateWindow.compareAndSet(true, false)) {
+    public void render() {
+        if (glfwWindowShouldClose(window) == GL_TRUE) {
+            callback.shutdown();
+            return;
+        }
+
+        if (updateingWindow.get() == true) {
             //we could move this outside the check if not responsive enough
             SwingUtilities.invokeLater(new Runnable() {                         //-Djava.awt.headless=true  ??
                 public void run() {
+//                    System.out.println("poll");
                     glfwPollEvents();       //has to be on main thread   
                 }
               });
-            
-            
+
             if (mirrorFBId != 0) {
                 // Blit mirror texture to back buffer
                 ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, mirrorFBId);
@@ -145,7 +149,8 @@ public final class MirrorWindow {
                 ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, 0);
                 glfwSwapBuffers(window);
             }
-            frames.incrementAndGet();
+            fpsCounter.frameDone();
+            updateingWindow.set(false);
         }
     }
     
@@ -158,6 +163,7 @@ public final class MirrorWindow {
     }
     
     public void close() {
+        fpsCounter.shutdown();
         executorST.shutdown();
         glfwDestroyWindow(window);
         glfwTerminate();
