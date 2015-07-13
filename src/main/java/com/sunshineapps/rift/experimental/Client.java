@@ -28,7 +28,7 @@ public final class Client implements ClientCallback {
      
         // step 8 - create mirror window
         System.out.println("step 8 - create mirror window");
-        mirrorWindow = new MirrorWindow(this, 30, rift.getPixelWidth()/2, rift.getCanvasRatio());         // Our mirror window can be smaller and updated less frequently than the rift
+        mirrorWindow = new MirrorWindow(this, "Hello VR World!", 30, rift.getPixelWidth()/2, rift.getCanvasRatio());         // Our mirror window can be smaller and updated less frequently than the rift
         mirrorWindow.setCyclopsMode(true);                                                          // We only need one eye...
 
         // display
@@ -68,9 +68,11 @@ public final class Client implements ClientCallback {
     public void keyPressed(final int key) {
         if (key == '2') {
             renderScene2.set(!renderScene2.get());
+            renderScene3.set(false);
         }
         if (key == '3') {
             renderScene3.set(!renderScene3.get());
+            renderScene2.set(false);
         }
     }
 

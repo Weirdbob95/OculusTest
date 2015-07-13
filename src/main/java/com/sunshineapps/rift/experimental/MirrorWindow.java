@@ -2,7 +2,6 @@ package com.sunshineapps.rift.experimental;
 
 import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_R;
 import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 import static org.lwjgl.glfw.GLFW.GLFW_RESIZABLE;
 import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
@@ -31,8 +30,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.swing.SwingUtilities;
-
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.opengl.ARBFramebufferObject;
@@ -60,7 +57,7 @@ public final class MirrorWindow {
         }
     };
     
-    public MirrorWindow(final ClientCallback client, final int fps, final int width, final float asspectRatio) {
+    public MirrorWindow(final ClientCallback client, final String title, final int fps, final int width, final float asspectRatio) {
         callback = client;
         
         errorfun = errorCallbackPrint(System.err);
@@ -76,7 +73,7 @@ public final class MirrorWindow {
         
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
         
-        window = glfwCreateWindow(windowW, windowH, "Hello VR World!", NULL, NULL);
+        window = glfwCreateWindow(windowW, windowH, title, NULL, NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
@@ -125,7 +122,6 @@ public final class MirrorWindow {
         }
     }
     
-    //NOTE THREADING!
     public void render() {
         if (glfwWindowShouldClose(window) == GL_TRUE) {
             callback.shutdown();
@@ -133,13 +129,7 @@ public final class MirrorWindow {
         }
 
         if (updateingWindow.get() == true) {
-            //we could move this outside the check if not responsive enough
-            SwingUtilities.invokeLater(new Runnable() {                         //-Djava.awt.headless=true  ??
-                public void run() {
-//                    System.out.println("poll");
-                    glfwPollEvents();       //has to be on main thread   
-                }
-              });
+            glfwPollEvents();
 
             if (mirrorFBId != 0) {
                 // Blit mirror texture to back buffer
@@ -155,7 +145,7 @@ public final class MirrorWindow {
     }
     
     public int getWindowW() {
-        return windowW;         //used for texture creation, so needs to be non blit width... otherwise both eyes get mirrored into half width texture
+        return windowW;
     }
 
     public int getWindowH() {
