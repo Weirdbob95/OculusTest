@@ -44,11 +44,15 @@ import static org.lwjgl.ovr.OVR.ovrHmd_GetFrameTiming;
 import static org.lwjgl.ovr.OVR.ovrHmd_GetRenderDesc;
 import static org.lwjgl.ovr.OVR.ovrHmd_GetTrackingState;
 import static org.lwjgl.ovr.OVR.ovrHmd_RecenterPose;
+import static org.lwjgl.ovr.OVR.ovrHmd_SetInt;
 import static org.lwjgl.ovr.OVR.ovrHmd_SubmitFrame;
 import static org.lwjgl.ovr.OVR.ovrLayerFlag_TextureOriginAtBottomLeft;
 import static org.lwjgl.ovr.OVR.ovrLayerType_EyeFov;
-import static org.lwjgl.ovr.OVR.ovrSuccess;
-import static org.lwjgl.ovr.OVR.ovrSuccess_NotVisible;
+import static org.lwjgl.ovr.OVR.ovrPerfHud_LatencyTiming;
+import static org.lwjgl.ovr.OVR.ovrPerfHud_Off;
+import static org.lwjgl.ovr.OVR.ovrPerfHud_RenderTiming;
+import static org.lwjgl.ovr.OVRErrorCode.ovrSuccess;
+import static org.lwjgl.ovr.OVRErrorCode.ovrSuccess_NotVisible;
 import static org.lwjgl.ovr.OVR.ovrTrackingCap_MagYawCorrection;
 import static org.lwjgl.ovr.OVR.ovrTrackingCap_Orientation;
 import static org.lwjgl.ovr.OVR.ovrTrackingCap_Position;
@@ -62,7 +66,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import org.joml.Matrix4f;
-import org.joml.Quaternion;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
@@ -113,6 +117,7 @@ public final class RiftWindow {
     private int textureH;
     private Vector3f playerEyePos;
     private int currentTPEIndex;
+    private int perfHUD;
     
     //OpenGL
     private FrameBuffer fbuffers[][];       //[eye][texturesPerEye]
@@ -403,7 +408,7 @@ public final class RiftWindow {
             Vector3f offsetPosition = new Vector3f(eyeRenderDesc[eye].getHmdToEyeViewOffsetX(), eyeRenderDesc[eye].getHmdToEyeViewOffsetY(), eyeRenderDesc[eye].getHmdToEyeViewOffsetZ());
             mat.translate(offsetPosition);
             
-            Quaternion orientation = new Quaternion(eyePose.getOrientationX(), eyePose.getOrientationY(), eyePose.getOrientationZ(), eyePose.getOrientationW());
+            Quaternionf orientation = new Quaternionf(eyePose.getOrientationX(), eyePose.getOrientationY(), eyePose.getOrientationZ(), eyePose.getOrientationW());
             orientation.invert();
             mat.rotate(orientation);
 
@@ -450,5 +455,17 @@ public final class RiftWindow {
         }
         ovrHmd_Destroy(hmd);
         ovr_Shutdown();
+    }
+
+    public void toggleHUD() {
+        perfHUD++;
+        if (perfHUD == 1) {
+            ovrHmd_SetInt(hmd, "PerfHudMode", (int)ovrPerfHud_LatencyTiming);
+        } else if (perfHUD == 2) {
+            ovrHmd_SetInt(hmd, "PerfHudMode", (int)ovrPerfHud_RenderTiming);
+        } else {
+            perfHUD = 0;
+            ovrHmd_SetInt(hmd, "PerfHudMode", (int)ovrPerfHud_Off);
+        }
     }
 }

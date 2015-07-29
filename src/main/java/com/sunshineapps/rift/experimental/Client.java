@@ -15,7 +15,6 @@ public final class Client implements ClientCallback {
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicBoolean renderScene2 = new AtomicBoolean(true);
     private final AtomicBoolean renderScene3 = new AtomicBoolean(false);
-    
     private float angle = 0.0f;
     
     public void run() {
@@ -28,14 +27,13 @@ public final class Client implements ClientCallback {
      
         // step 8 - create mirror window
         System.out.println("step 8 - create mirror window");
-        mirrorWindow = new MirrorWindow(this, "Hello VR World!", 30, rift.getPixelWidth()/2, rift.getCanvasRatio());         // Our mirror window can be smaller and updated less frequently than the rift
+        mirrorWindow = new MirrorWindow(this, "Hello VR World!", 30, rift.getPixelWidth(), rift.getCanvasRatio());         // Our mirror window can be smaller and updated less frequently than the rift
         mirrorWindow.setCyclopsMode(true);                                                          // We only need one eye...
-
+        
         // display
         try {
             rift.init();
             mirrorWindow.init(rift.getMirrorTexture(mirrorWindow.getWindowW(), mirrorWindow.getWindowH()));
-      //      mouse.init();
             scene2.init();
             scene3.init();
             fpsCounter.init();
@@ -55,24 +53,27 @@ public final class Client implements ClientCallback {
     public void drawScene(final Matrix4f mat) {
         if (renderScene2.get()) {
             mat.translate(new Vector3f(0.0f, 0.0f, -130.0f)); 
-            angle += .05;
+            angle += .002;
             mat.rotate(angle, new Vector3f(0.0f, 1.0f, 0.0f));
             scene2.render();
         }
         if (renderScene3.get()) {
             scene3.render();
         }
+           
     }
     
     @Override
     public void keyPressed(final int key) {
+        System.out.println("key="+key);
         if (key == '2') {
             renderScene2.set(!renderScene2.get());
             renderScene3.set(false);
-        }
-        if (key == '3') {
+        } else if (key == '3') {
             renderScene3.set(!renderScene3.get());
             renderScene2.set(false);
+        } else if (key == 300) {       //F11 toggle Performance HUD
+            rift.toggleHUD();
         }
     }
 
