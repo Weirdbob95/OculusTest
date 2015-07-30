@@ -6,12 +6,14 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.Sys;
 
+import com.sunshineapps.riftexample.thirdparty.SharedLibraryLoader;
+
 public final class Client implements ClientCallback {
     private RiftWindow rift;
     private MirrorWindow mirrorWindow;
     private final FPSCounter fpsCounter = new FPSCounter();
-    private final Scene scene2 = new TestGlobeScene();
-    private final Scene scene3 = new RoomScene();
+    private final Scene scene2 = new SceneGlobe();
+    private final Scene scene3 = new SceneRoom();
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicBoolean renderScene2 = new AtomicBoolean(true);
     private final AtomicBoolean renderScene3 = new AtomicBoolean(false);
@@ -83,6 +85,7 @@ public final class Client implements ClientCallback {
     }
     
     public static void main(String[] args) {
+        SharedLibraryLoader.load();
         new Client().run();
     }
 
