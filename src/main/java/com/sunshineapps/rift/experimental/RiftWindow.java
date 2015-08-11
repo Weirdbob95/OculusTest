@@ -51,14 +51,14 @@ import static org.lwjgl.ovr.OVR.ovrLayerType_EyeFov;
 import static org.lwjgl.ovr.OVR.ovrPerfHud_LatencyTiming;
 import static org.lwjgl.ovr.OVR.ovrPerfHud_Off;
 import static org.lwjgl.ovr.OVR.ovrPerfHud_RenderTiming;
-import static org.lwjgl.ovr.OVRErrorCode.ovrSuccess;
-import static org.lwjgl.ovr.OVRErrorCode.ovrSuccess_NotVisible;
 import static org.lwjgl.ovr.OVR.ovrTrackingCap_MagYawCorrection;
 import static org.lwjgl.ovr.OVR.ovrTrackingCap_Orientation;
 import static org.lwjgl.ovr.OVR.ovrTrackingCap_Position;
 import static org.lwjgl.ovr.OVR.ovr_GetVersionString;
 import static org.lwjgl.ovr.OVR.ovr_Initialize;
 import static org.lwjgl.ovr.OVR.ovr_Shutdown;
+import static org.lwjgl.ovr.OVRErrorCode.ovrSuccess;
+import static org.lwjgl.ovr.OVRErrorCode.ovrSuccess_NotVisible;
 import static org.lwjgl.ovr.OVRKeys.OVR_KEY_EYE_HEIGHT;
 import static org.lwjgl.system.MemoryUtil.memDecodeASCII;
 
@@ -71,7 +71,7 @@ import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.ARBFramebufferObject;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.ovr.OVREyeRenderDesc;
 import org.lwjgl.ovr.OVRFovPort;
 import org.lwjgl.ovr.OVRFrameTiming;
@@ -212,7 +212,7 @@ public final class RiftWindow {
         // step 9 - init
         System.out.println("step 9 - init");
         
-        GLContext.createFromCurrent();
+        GL.createCapabilities();
         glClearColor(0.42f, 0.67f, 0.87f, 1.0f);
         
         glEnable(GL_CULL_FACE);
