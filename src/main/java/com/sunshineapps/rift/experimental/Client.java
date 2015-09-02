@@ -9,7 +9,7 @@ import org.lwjgl.Sys;
 import com.sunshineapps.riftexample.thirdparty.SharedLibraryLoader;
 
 public final class Client implements ClientCallback {
-    private RiftWindow rift;
+    private RiftWindow0700 rift;
     private MirrorWindow mirrorWindow;
     private final FPSCounter fpsCounter = new FPSCounter();
     private final Scene scene2 = new SceneGlobe();
@@ -25,11 +25,11 @@ public final class Client implements ClientCallback {
         
         // step 0 - create rift
         System.out.println("step 0 - create rift");
-        rift = new RiftWindow(this);
+        rift = new RiftWindow0700(this);
      
         // step 8 - create mirror window
         System.out.println("step 8 - create mirror window");
-        mirrorWindow = new MirrorWindow(this, "Hello VR World!", 30, rift.getPixelWidth(), rift.getCanvasRatio());         // Our mirror window can be smaller and updated less frequently than the rift
+        mirrorWindow = new MirrorWindow(this, "Hello VR World!", 30, rift.getPixelWidth()/2, rift.getCanvasRatio());         // Our mirror window can be smaller and updated less frequently than the rift
         mirrorWindow.setCyclopsMode(true);                                                          // We only need one eye...
         
         // display
@@ -62,7 +62,6 @@ public final class Client implements ClientCallback {
         if (renderScene3.get()) {
             scene3.render();
         }
-           
     }
     
     @Override
