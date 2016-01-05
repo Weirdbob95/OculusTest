@@ -7,7 +7,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-	
+	<!-- 
 	<repositories>
     <repository>
         <id>oss-sonatype</id>
@@ -18,6 +18,8 @@
         </snapshots>
     </repository>
 </repositories>
+
+ -->
 
 	<dependencies>
 		<!-- <dependency> <groupId>io.netty</groupId> <artifactId>netty-all</artifactId> 
@@ -31,13 +33,13 @@
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl</artifactId>
-			<version>3.0.0b-SNAPSHOT</version>
+			<version>3.0.0b</version>
 		</dependency>
-
+ 
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-platform</artifactId>
-            <version>3.0.0b-SNAPSHOT</version>
+            <version>3.0.0b</version>
             <classifier>natives-windows</classifier>
         </dependency>
 

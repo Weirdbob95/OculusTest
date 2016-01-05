@@ -4,12 +4,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.lwjgl.Sys;
+//import org.lwjgl.Sys;
 
-import com.sunshineapps.riftexample.thirdparty.SharedLibraryLoader;
 
 public final class Client implements ClientCallback {
-    private RiftWindow0700 rift;
+    private RiftWindow0800 rift;
     private MirrorWindow mirrorWindow;
     private final FPSCounter fpsCounter = new FPSCounter();
     private final Scene scene2 = new SceneGlobe();
@@ -21,11 +20,11 @@ public final class Client implements ClientCallback {
     
     public void run() {
         System.out.println("Java "+System.getProperty("java.version"));
-        System.out.println("LWJGL " +Sys.JNI_LIBRARY_NAME+"-"+Sys.getVersion());
+      //  System.out.println("LWJGL " +Sys.JNI_LIBRARY_NAME+"-"+Sys.getVersion());
         
         // step 0 - create rift
         System.out.println("step 0 - create rift");
-        rift = new RiftWindow0700(this);
+        rift = new RiftWindow0800(this);
      
         // step 8 - create mirror window
         System.out.println("step 8 - create mirror window");
@@ -84,7 +83,6 @@ public final class Client implements ClientCallback {
     }
     
     public static void main(String[] args) {
-        SharedLibraryLoader.load();
         new Client().run();
     }
 

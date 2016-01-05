@@ -1,6 +1,6 @@
 package com.sunshineapps.rift.experimental;
 
-import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
+//import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 import static org.lwjgl.glfw.GLFW.GLFW_RESIZABLE;
@@ -60,7 +60,7 @@ public final class MirrorWindow {
     public MirrorWindow(final ClientCallback client, final String title, final int fps, final int width, final float asspectRatio) {
         callback = client;
         
-        errorfun = errorCallbackPrint(System.err);
+        errorfun = GLFWErrorCallback.createPrint(System.err);
         glfwSetErrorCallback(errorfun);
         
         if (glfwInit() != GL_TRUE) {
