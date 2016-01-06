@@ -4,7 +4,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-//import org.lwjgl.Sys;
+import org.lwjgl.Version;
+import org.lwjgl.system.Library;
 
 
 public final class Client implements ClientCallback {
@@ -19,8 +20,8 @@ public final class Client implements ClientCallback {
     private float angle = 0.0f;
     
     public void run() {
-        System.out.println("Java "+System.getProperty("java.version"));
-      //  System.out.println("LWJGL " +Sys.JNI_LIBRARY_NAME+"-"+Sys.getVersion());
+        System.out.println("Java " + System.getProperty("java.version"));
+        System.out.println("LWJGL " + Library.JNI_LIBRARY_NAME + "-" + Version.getVersion());
         
         // step 0 - create rift
         System.out.println("step 0 - create rift");

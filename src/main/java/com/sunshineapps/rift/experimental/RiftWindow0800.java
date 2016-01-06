@@ -158,15 +158,15 @@ public final class RiftWindow0800 {
             //debug headset is now enabled via the Oculus Configuration util . tools -> Service -> Configure
             return;
         }
+        hmd = pHmd.get(0);
+        memFree(pHmd);
         luid.free();
 
         // step 3 - hmdDesc queries
         System.out.println("step 3 - hmdDesc queries");
-        hmd = pHmd.get(0);
         hmdDesc = OVRHmdDesc.malloc();
         ovr_GetHmdDesc(hmd, hmdDesc);
         System.out.println("ovr_GetHmdDesc = " + hmdDesc.ManufacturerString() + " " + hmdDesc.ProductNameString() + " " + hmdDesc.SerialNumberString() + " " + hmdDesc.Type());
-     
         if(hmdDesc.Type() == ovrHmd_None) {
             System.out.println("missing init");
             return;
