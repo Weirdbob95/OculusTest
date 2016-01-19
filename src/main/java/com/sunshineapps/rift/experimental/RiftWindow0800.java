@@ -274,7 +274,7 @@ public final class RiftWindow0800 {
             throw new IllegalStateException("Failed to create Swap Texture Set");
         }
         long hts = textureSetPB.get(0);
-        textureSetOne = new OVRSwapTextureSet(MemoryUtil.memByteBuffer(hts, OVRSwapTextureSet.SIZEOF));
+        textureSetOne = OVRSwapTextureSet.create(hts);
         texturesPerEyeCount = textureSetOne.TextureCount();
         System.out.println("texturesPerEyeCount="+texturesPerEyeCount);
 
@@ -286,7 +286,7 @@ public final class RiftWindow0800 {
         // create FrameBuffers for Oculus SDK generated textures
         textures = new OVRGLTexture[2][1];
         fbuffers = new FrameBuffer[2][1];
-        long hTextures = textureSetOne.Textures().address();
+        long hTextures = textureSetOne.Textures(2).address();
         for (int eye = 0; eye < 2; eye++) {
             OVRGLTexture texture = new OVRGLTexture(MemoryUtil.memByteBuffer(hTextures + (eye * OVRGLTexture.SIZEOF), OVRGLTexture.SIZEOF));
             textures[eye][0] = texture;
@@ -365,12 +365,12 @@ public final class RiftWindow0800 {
         hmdState.free();
 
         //build view offsets struct
-        OVRVector3f.Buffer hmdToEyeViewOffsets = OVRVector3f.callocBuffer(2);
+        OVRVector3f.Buffer hmdToEyeViewOffsets = OVRVector3f.calloc(2);
         hmdToEyeViewOffsets.put(0, eyeRenderDesc[ovrEye_Left].HmdToEyeViewOffset());
         hmdToEyeViewOffsets.put(1, eyeRenderDesc[ovrEye_Right].HmdToEyeViewOffset());
         
         //calculate eye poses
-        OVRPosef.Buffer outEyePoses = OVRPosef.createBuffer(2);
+        OVRPosef.Buffer outEyePoses = OVRPosef.create(2);
         OVRUtil.ovr_CalcEyePoses(headPose, hmdToEyeViewOffsets, outEyePoses);
         eyePoses[ovrEye_Left] = outEyePoses.get(0);
         eyePoses[ovrEye_Right] = outEyePoses.get(1);
