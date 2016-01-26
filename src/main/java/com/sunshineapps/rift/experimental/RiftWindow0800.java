@@ -87,7 +87,6 @@ import org.lwjgl.ovr.OVRSwapTextureSet;
 import org.lwjgl.ovr.OVRTrackingState;
 import org.lwjgl.ovr.OVRUtil;
 import org.lwjgl.ovr.OVRVector3f;
-import org.lwjgl.system.MemoryUtil;
 
 import com.sunshineapps.riftexample.thirdparty.FrameBuffer;
 
@@ -288,7 +287,7 @@ public final class RiftWindow0800 {
         fbuffers = new FrameBuffer[2][1];
         long hTextures = textureSetOne.Textures(2).address();
         for (int eye = 0; eye < 2; eye++) {
-            OVRGLTexture texture = new OVRGLTexture(MemoryUtil.memByteBuffer(hTextures + (eye * OVRGLTexture.SIZEOF), OVRGLTexture.SIZEOF));
+            OVRGLTexture texture = OVRGLTexture.create(hTextures + (eye * OVRGLTexture.SIZEOF));
             textures[eye][0] = texture;
             System.out.println("textureId="+texture.OGL().TexId()+", W="+texture.OGL().Header().TextureSize().w()+", "+texture.OGL().Header().TextureSize().h()+", texturePointer="+texture.address());
             fbuffers[eye][0] = new FrameBuffer(texture.OGL().Header().TextureSize().w(), texture.OGL().Header().TextureSize().h(), texture.OGL().TexId());        //Texture size might not be what we asked for
@@ -327,22 +326,21 @@ public final class RiftWindow0800 {
         if (!displayMirror) {
             return 0;
         }
-            // Create mirror texture and an FBO used to copy mirror texture to back buffer
-            PointerBuffer outMirrorTexture = BufferUtils.createPointerBuffer(1);
-            OVRGL.ovr_CreateMirrorTextureGL(hmd, GL_RGBA, windowW, windowH, outMirrorTexture);
-            long hMT = outMirrorTexture.get();
-            
-            OVRGLTexture texture = new OVRGLTexture(MemoryUtil.memByteBuffer(hMT, OVRGLTexture.SIZEOF));
-            int mirrorTextureId = texture.OGL().TexId();
-            
-            // Configure the mirror read buffer
-            int mirrorFBId = ARBFramebufferObject.glGenFramebuffers();
-            ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, mirrorFBId);
-            ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_READ_FRAMEBUFFER, ARBFramebufferObject.GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mirrorTextureId, 0);
-            ARBFramebufferObject.glFramebufferRenderbuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_ATTACHMENT, ARBFramebufferObject.GL_RENDERBUFFER, 0);
-            ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, 0);
-            
         
+        // Create mirror texture and an FBO used to copy mirror texture to back buffer
+        PointerBuffer outMirrorTexture = BufferUtils.createPointerBuffer(1);
+        OVRGL.ovr_CreateMirrorTextureGL(hmd, GL_RGBA, windowW, windowH, outMirrorTexture);
+        long hMT = outMirrorTexture.get();
+        OVRGLTexture texture = OVRGLTexture.create(hMT);
+        int mirrorTextureId = texture.OGL().TexId();
+        
+        // Configure the mirror read buffer
+        int mirrorFBId = ARBFramebufferObject.glGenFramebuffers();
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, mirrorFBId);
+        ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_READ_FRAMEBUFFER, ARBFramebufferObject.GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mirrorTextureId, 0);
+        ARBFramebufferObject.glFramebufferRenderbuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_ATTACHMENT, ARBFramebufferObject.GL_RENDERBUFFER, 0);
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_READ_FRAMEBUFFER, 0);
+            
         return mirrorFBId;
     }
 
