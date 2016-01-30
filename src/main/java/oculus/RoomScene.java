@@ -1,4 +1,4 @@
-package com.sunshineapps.rift.experimental;
+package oculus;
 
 import static org.lwjgl.opengl.GL11.GL_DECAL;
 import static org.lwjgl.opengl.GL11.GL_QUADS;
@@ -18,8 +18,8 @@ import static org.lwjgl.opengl.GL11.glVertex3f;
 
 import java.io.IOException;
 
-import com.sunshineapps.riftexample.thirdparty.Texture;
-import com.sunshineapps.riftexample.thirdparty.TextureLoader;
+import thirdparty.Texture;
+import thirdparty.TextureLoader;
 
 public final class RoomScene implements Scene {
     private Texture floorTexture;

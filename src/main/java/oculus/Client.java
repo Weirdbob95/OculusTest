@@ -1,4 +1,4 @@
-package com.sunshineapps.rift.experimental;
+package oculus;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

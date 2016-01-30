@@ -1,4 +1,4 @@
-package com.sunshineapps.rift.experimental;
+package oculus;
 
 import org.joml.Matrix4f;
 

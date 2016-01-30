@@ -1,4 +1,4 @@
-package com.sunshineapps.rift.experimental;
+package oculus;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_LINE_STRIP;

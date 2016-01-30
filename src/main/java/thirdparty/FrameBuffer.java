@@ -1,4 +1,4 @@
-package com.sunshineapps.riftexample.thirdparty;
+package thirdparty;
 
 import static org.lwjgl.opengl.GL11.GL_INT;
 import static org.lwjgl.opengl.GL11.GL_LINEAR;

@@ -1,4 +1,4 @@
-package com.sunshineapps.rift.experimental;
+package oculus;
 
 //import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;

@@ -1,4 +1,4 @@
-package com.sunshineapps.riftexample.thirdparty;
+package thirdparty;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.color.ColorSpace;
